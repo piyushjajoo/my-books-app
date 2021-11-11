@@ -1,6 +1,6 @@
 package consts
 
 const (
-	// Register User Handler Error Codes
-	REGISTER_USER_HANDLER_ERROR_CODE = "MBA-1001"
+	// TimeFormatLayoutForAstraDb is the layout for timestamp for astra db tables
+	TimeFormatLayoutForAstraDb = "2006-01-02T15:04:05.000Z"
 )

@@ -19,6 +19,12 @@ type CreateUserResponseDB struct {
 	Id string `json:"id"`
 }
 
+type GetUserResponseDB struct {
+	Data      []interface{} `json:"data"`
+	Count     int           `json:"count"`
+	PageState string        `json:"pageState"`
+}
+
 type GetUserResponse struct {
 	Id         string `json:"id"`
 	Email      string `json:"email"`

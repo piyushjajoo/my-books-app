@@ -2,13 +2,16 @@
 package main
 
 import (
+	"books-server/pkg/consts"
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"books-server/pkg/conf"
@@ -38,7 +41,7 @@ func main() {
 
 	// add methods
 	r.HandleFunc("/users", RegisterUserHandler).Methods(http.MethodPost)
-	r.HandleFunc("/users", GetUserByEmailHandler).Methods(http.MethodGet)
+	r.HandleFunc("/users", GetUserByEmailHandler).Methods(http.MethodGet).Queries("email", "{email}")
 	r.HandleFunc("/users/{id}/books", AddBooksHandler).Methods(http.MethodPost)
 	r.HandleFunc("/users/{id}/books", GetBooksHandler).Methods(http.MethodGet)
 	r.HandleFunc("/users/{id}/books/{id}", GetBookDetailsHandler).Methods(http.MethodGet)
@@ -88,7 +91,7 @@ func main() {
 func logIncomingRequestHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Do stuff here
-		log.Println("incoming request", r.Method, r.RequestURI)
+		log.Println("incoming request", r.Method, r.URL)
 		// Call the next handler, which can be another middleware in the chain, or the final handler.
 		next.ServeHTTP(w, r)
 	})
@@ -107,7 +110,7 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	// insert data into table by calling API on Astra DB
 	id := uuid.New().String() // generate new UUID
-	createdAt := time.Now().Format("2006-01-02T15:04:05.000Z")
+	createdAt := time.Now().UTC().Format(consts.TimeFormatLayoutForAstraDb)
 	modifiedAt := createdAt
 
 	createUserReqDB := &types.CreateUserRequestDB{
@@ -153,7 +156,48 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetUserByEmailHandler returns user details retrieved using email
 func GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {
+	email := strings.TrimSpace(r.URL.Query().Get("email"))
+	if email == "" {
+		log.Println("email query param cannot be empty")
+		util.WriteError(w, http.StatusBadRequest, "email query param cannot be empty", "")
+		return
+	}
 
+	getUserDBResponse := &types.GetUserResponseDB{}
+	client := resty.New()
+	resp, err := client.R().
+		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
+		SetQueryParam("where", fmt.Sprintf("{\"email\":{\"$eq\": \"%s\"}}", email)).
+		SetQueryParam("page-size", "1").
+		SetResult(getUserDBResponse).
+		Get(conf.GetUsersTableUrl())
+	if err != nil {
+		log.Println("unexpected error", err)
+		util.WriteError(w, http.StatusInternalServerError, "unexpected error", err.Error())
+		return
+	}
+
+	if resp.IsError() {
+		log.Println("unexpected error", resp.String())
+		util.WriteError(w, resp.StatusCode(), "unexpected error", resp.String())
+		return
+	}
+
+	log.Println("success response from Astra DB", resp.String())
+
+	userDetailsFromDB := getUserDBResponse.Data[0].(map[string]interface{})
+	createdAt := userDetailsFromDB["created_at"].(map[string]interface{})
+	modifiedAt := userDetailsFromDB["modified_at"].(map[string]interface{})
+	getUserResp := &types.GetUserResponse{
+		Id: userDetailsFromDB["id"].(string),
+		Email: userDetailsFromDB["email"].(string),
+		FirstName: userDetailsFromDB["first_name"].(string),
+		LastName: userDetailsFromDB["last_name"].(string),
+		CreatedAt: time.Unix(int64(createdAt["epochSecond"].(float64)), int64(createdAt["nano"].(float64))).UTC().Format(consts.TimeFormatLayoutForAstraDb),
+		ModifiedAt: time.Unix(int64(modifiedAt["epochSecond"].(float64)), int64(modifiedAt["nano"].(float64))).UTC().Format(consts.TimeFormatLayoutForAstraDb),
+	}
+	// return success response
+	util.WriteSuccess(w, http.StatusOK, getUserResp)
 }
 
 // AddBooksHandler adds a book entry for a user for the provided id
