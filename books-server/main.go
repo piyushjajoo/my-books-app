@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -102,13 +101,7 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	err := util.RequestValidator(createUserReq, r)
 	if err != nil {
 		log.Println("error validating the register user request", err)
-		w.WriteHeader(http.StatusBadRequest)
-		errorResponse := types.ErrorResponse{
-			ErrorCode:    http.StatusBadRequest,
-			ErrorMsg:     fmt.Sprintf("error validating request"),
-			ErrorDetails: err.Error(),
-		}
-		json.NewEncoder(w).Encode(errorResponse)
+		util.WriteError(w, http.StatusBadRequest, "error validating request", err.Error())
 		return
 	}
 
@@ -129,13 +122,7 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	createUserReqDBBytes, err := json.Marshal(createUserReqDB)
 	if err != nil {
 		log.Println("unexpected error", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		errorResponse := types.ErrorResponse{
-			ErrorCode:    http.StatusInternalServerError,
-			ErrorMsg:     fmt.Sprintf("unexpected error"),
-			ErrorDetails: err.Error(),
-		}
-		json.NewEncoder(w).Encode(errorResponse)
+		util.WriteError(w, http.StatusInternalServerError, "unexpected error", err.Error())
 		return
 	}
 
@@ -148,35 +135,20 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		Post(conf.GetUsersTableUrl())
 	if err != nil {
 		log.Println("unexpected error", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		errorResponse := types.ErrorResponse{
-			ErrorCode:    http.StatusInternalServerError,
-			ErrorMsg:     fmt.Sprintf("unexpected error"),
-			ErrorDetails: err.Error(),
-		}
-		json.NewEncoder(w).Encode(errorResponse)
+		util.WriteError(w, http.StatusInternalServerError, "unexpected error", err.Error())
 		return
 	}
 
 	if resp.IsError() {
 		log.Println("unexpected error", resp.String())
-		w.WriteHeader(resp.StatusCode())
-		errorResponse := types.ErrorResponse{
-			ErrorCode:    resp.StatusCode(),
-			ErrorMsg:     fmt.Sprintf("unexpected error"),
-			ErrorDetails: resp.String(),
-		}
-		json.NewEncoder(w).Encode(errorResponse)
+		util.WriteError(w, resp.StatusCode(), "unexpected error", resp.String())
 		return
 	}
 
 	log.Println("success response from Astra DB", resp.String())
 
 	// return success response
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(createUserRespDB)
-	return
+	util.WriteSuccess(w, http.StatusOK, createUserRespDB)
 }
 
 // GetUserByEmailHandler returns user details retrieved using email

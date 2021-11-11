@@ -1,6 +1,7 @@
 package util
 
 import (
+	"books-server/pkg/types"
 	"encoding/json"
 	"github.com/go-playground/validator"
 	"github.com/kelseyhightower/envconfig"
@@ -34,4 +35,21 @@ func RequestValidator(input interface{}, r *http.Request) error {
 	}
 
 	return nil
+}
+
+// WriteError writes an error response on the provided writer
+func WriteError(w http.ResponseWriter, statusCode int, errorMsg, errorDetails string) {
+	w.WriteHeader(statusCode)
+	errorResponse := types.ErrorResponse{
+		ErrorCode:    statusCode,
+		ErrorMsg:     errorMsg,
+		ErrorDetails: errorDetails,
+	}
+	json.NewEncoder(w).Encode(errorResponse)
+}
+
+func WriteSuccess(w http.ResponseWriter, statusCode int, responseStruct interface{}) {
+	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseStruct)
 }
