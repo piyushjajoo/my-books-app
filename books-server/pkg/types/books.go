@@ -1,7 +1,7 @@
 package types
 
 type CreateBookDetailsRequest struct {
-	BookName   string `json:"book_name"`
+	BookName   string `validate:"required" json:"book_name"`
 	Liked      bool   `json:"liked"`
 	StartedAt  string `json:"started_at,omitempty"`
 	FinishedAt string `json:"finished_at,omitempty"`
@@ -16,7 +16,7 @@ type GetBookDetailsResponse struct {
 }
 
 type UpdateBookDetailsRequest struct {
-	BookName   string `json:"book_name"`
+	BookName   string `validate:"required" json:"book_name"`
 	Liked      bool   `json:"liked"`
 	StartedAt  string `json:"started_at,omitempty"`
 	FinishedAt string `json:"finished_at,omitempty"`
