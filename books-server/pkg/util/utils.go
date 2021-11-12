@@ -48,6 +48,12 @@ func WriteError(w http.ResponseWriter, statusCode int, errorMsg, errorDetails st
 	json.NewEncoder(w).Encode(errorResponse)
 }
 
+// WriteErrorUsingErrorResponseStruct writes an error response with the provided types.ErrorResponse struct
+func WriteErrorUsingErrorResponseStruct(w http.ResponseWriter, errorResponse *types.ErrorResponse) {
+	w.WriteHeader(errorResponse.ErrorCode)
+	json.NewEncoder(w).Encode(errorResponse)
+}
+
 func WriteSuccess(w http.ResponseWriter, statusCode int, responseStruct interface{}) {
 	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json")

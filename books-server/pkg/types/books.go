@@ -7,6 +7,25 @@ type CreateBookDetailsRequest struct {
 	FinishedAt string `json:"finished_at,omitempty"`
 }
 
+type CreateBookDetailsRequestDB struct {
+	Id         string `json:"id"`
+	UserId     string `json:"user_id"`
+	BookName   string `json:"book_name"`
+	Liked      bool   `json:"liked"`
+	StartedAt  string `json:"started_at,omitempty"`
+	FinishedAt string `json:"finished_at,omitempty"`
+}
+
+type CreateBookDetailsResponseDB struct {
+	Id string `json:"id"`
+}
+
+type GetBookDetailsResponseDB struct {
+	Data      []interface{} `json:"data"`
+	Count     int           `json:"count"`
+	PageState string        `json:"pageState"`
+}
+
 type GetBookDetailsResponse struct {
 	Id         string `json:"id"`
 	BookName   string `json:"book_name"`
