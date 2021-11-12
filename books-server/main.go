@@ -303,7 +303,63 @@ func AddBooksHandler(w http.ResponseWriter, r *http.Request) { // validate the r
 
 // GetBooksHandler returns all the books details for a user
 func GetBooksHandler(w http.ResponseWriter, r *http.Request) {
+	// check if header is present
+	vars := mux.Vars(r)
+	userId := strings.TrimSpace(vars["id"])
 
+	// check if user exists
+	userCheckErr := checkUserExists(userId)
+	if userCheckErr != nil {
+		log.Println("error checking user")
+		util.WriteErrorUsingErrorResponseStruct(w, userCheckErr)
+		return
+	}
+
+	getBookDetailsResponseDB := &types.GetBookDetailsResponseDB{}
+	client := resty.New()
+	resp, err := client.R().
+		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
+		SetQueryParam("where", fmt.Sprintf("{\"user_id\":{\"$eq\": \"%s\"}}", userId)).
+		SetResult(getBookDetailsResponseDB).
+		Get(conf.GetMyReadingListTableUrl())
+	if err != nil {
+		log.Println("unexpected error", err)
+		util.WriteError(w, http.StatusInternalServerError, "unexpected error", err.Error())
+		return
+	}
+
+	if resp.IsError() {
+		log.Println("unexpected error", resp.String())
+		util.WriteError(w, resp.StatusCode(), "unexpected error", resp.String())
+		return
+	}
+
+	log.Println("success response from Astra DB", resp.String())
+
+	if getBookDetailsResponseDB.Count == 0 {
+		log.Println(fmt.Sprintf("no books found for user '%s'", userId))
+		util.WriteErrorUsingErrorResponseStruct(w, &types.ErrorResponse{ErrorCode: http.StatusNotFound, ErrorMsg: "no books found"})
+	}
+
+	var getBooksDetailsResponse []*types.GetBookDetailsResponse
+	for _, bookDetails := range getBookDetailsResponseDB.Data {
+		bookDetailsFromDB := bookDetails.(map[string]interface{})
+		startedAt := bookDetailsFromDB["started_at"].(map[string]interface{})
+		getBookDetailsResponse := &types.GetBookDetailsResponse{
+			Id:        bookDetailsFromDB["id"].(string),
+			BookName:  bookDetailsFromDB["book_name"].(string),
+			Liked:     bookDetailsFromDB["liked"].(bool),
+			StartedAt: time.Unix(int64(startedAt["epochSecond"].(float64)), int64(startedAt["nano"].(float64))).UTC().Format(consts.TimeFormatLayoutForAstraDb),
+		}
+		if bookDetailsFromDB["finished_at"] != nil {
+			finishedAt := bookDetailsFromDB["finished_at"].(map[string]interface{})
+			getBookDetailsResponse.FinishedAt = time.Unix(int64(finishedAt["epochSecond"].(float64)), int64(finishedAt["nano"].(float64))).UTC().Format(consts.TimeFormatLayoutForAstraDb)
+		}
+		getBooksDetailsResponse = append(getBooksDetailsResponse, getBookDetailsResponse)
+	}
+
+	// return success response
+	util.WriteSuccess(w, http.StatusOK, getBooksDetailsResponse)
 }
 
 // GetBookDetailsHandler returns a book details for a user for the provided id

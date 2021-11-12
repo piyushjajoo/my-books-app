@@ -24,6 +24,9 @@ create index if not exists user_email_index on my_first_crud_ks.users(email);
 
 # table to keep record of the books for a user
 create table my_first_crud_ks.my_reading_list(id uuid primary key, user_id uuid, book_name text, started_at timestamp, finished_at timestamp, liked boolean);
+
+# index on user_id field so that we can retrieve data filtered on user_id
+create index if not exists user_id_index ON my_first_crud_ks.my_reading_list(user_id);
 ```
 ## Books HTTP Server
 [books-server](books-server/README.md)
