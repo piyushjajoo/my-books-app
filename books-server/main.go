@@ -339,6 +339,7 @@ func GetBooksHandler(w http.ResponseWriter, r *http.Request) {
 	if getBookDetailsResponseDB.Count == 0 {
 		log.Println(fmt.Sprintf("no books found for user '%s'", userId))
 		util.WriteErrorUsingErrorResponseStruct(w, &types.ErrorResponse{ErrorCode: http.StatusNotFound, ErrorMsg: "no books found"})
+		return
 	}
 
 	var getBooksDetailsResponse []*types.GetBookDetailsResponse
@@ -401,6 +402,7 @@ func GetBookDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	if getBookDetailsResponseDB.Count == 0 {
 		log.Println(fmt.Sprintf("book '%s' not found for user '%s'", bookId, userId))
 		util.WriteErrorUsingErrorResponseStruct(w, &types.ErrorResponse{ErrorCode: http.StatusNotFound, ErrorMsg: "book not found"})
+		return
 	}
 
 	bookDetailsFromDB := getBookDetailsResponseDB.Data[0].(map[string]interface{})
@@ -421,10 +423,99 @@ func GetBookDetailsHandler(w http.ResponseWriter, r *http.Request) {
 
 // UpdateBookDetailsHandler updates a book details for a user for the provided id
 func UpdateBookDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	// check if header is present
+	vars := mux.Vars(r)
+	userId := strings.TrimSpace(vars["userId"])
+	bookId := strings.TrimSpace(vars["bookId"])
 
+	// check if user exists
+	userCheckErr := checkUserExists(userId)
+	if userCheckErr != nil {
+		log.Println("error checking user")
+		util.WriteErrorUsingErrorResponseStruct(w, userCheckErr)
+		return
+	}
+
+	updateBookDetailsRequest := &types.UpdateBookDetailsRequest{}
+	err := util.RequestValidator(updateBookDetailsRequest, r)
+	if err != nil {
+		log.Println("error validating the update book details request", err)
+		util.WriteError(w, http.StatusBadRequest, "error validating request", err.Error())
+		return
+	}
+
+	updateBookDetailsRequestDB := &types.UpdateBookDetailsRequestDB{
+		UserId:    userId,
+		BookName:  updateBookDetailsRequest.BookName,
+		Liked:     updateBookDetailsRequest.Liked,
+		StartedAt: updateBookDetailsRequest.StartedAt,
+	}
+	if updateBookDetailsRequest.FinishedAt != "" {
+		updateBookDetailsRequestDB.FinishedAt = updateBookDetailsRequest.FinishedAt
+	}
+
+	// update data in DB
+	client := resty.New()
+	resp, err := client.R().
+		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
+		SetBody(updateBookDetailsRequestDB).
+		Put(conf.GetMyReadingListTableUrl() + "/" + bookId)
+	if err != nil {
+		log.Println("unexpected error", err)
+		util.WriteError(w, http.StatusInternalServerError, "unexpected error", err.Error())
+		return
+	}
+
+	if resp.IsError() {
+		log.Println("unexpected error", resp.String())
+		util.WriteError(w, resp.StatusCode(), "unexpected error", resp.String())
+		return
+	}
+
+	log.Println("success response from Astra DB", resp.String())
+
+	// return success response
+	util.WriteSuccess(w, http.StatusOK, &types.SuccessResponse{
+		Message: "Successfully updated book details",
+	})
 }
 
 // DeleteBookDetailsHandler detail a book details for a user for the provided id
 func DeleteBookDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	// check if header is present
+	vars := mux.Vars(r)
+	userId := strings.TrimSpace(vars["userId"])
+	bookId := strings.TrimSpace(vars["bookId"])
 
+	// check if user exists
+	userCheckErr := checkUserExists(userId)
+	if userCheckErr != nil {
+		log.Println("error checking user")
+		util.WriteErrorUsingErrorResponseStruct(w, userCheckErr)
+		return
+	}
+
+	client := resty.New()
+	resp, err := client.R().
+		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
+		SetQueryParam("page-size", "1").
+		Delete(conf.GetMyReadingListTableUrl() + "/" + bookId)
+	if err != nil {
+		log.Println("unexpected error", err)
+		util.WriteError(w, http.StatusInternalServerError, "unexpected error", err.Error())
+		return
+	}
+
+	if resp.IsError() {
+		log.Println("unexpected error", resp.String())
+		util.WriteError(w, resp.StatusCode(), "unexpected error", resp.String())
+		return
+	}
+
+	log.Println("success response from Astra DB", resp.String())
+
+	// return success response
+	util.WriteSuccess(w, http.StatusOK, &types.SuccessResponse{
+		Message: "Successfully deleted book details",
+	})
 }

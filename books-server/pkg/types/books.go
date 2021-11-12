@@ -36,7 +36,19 @@ type GetBookDetailsResponse struct {
 
 type UpdateBookDetailsRequest struct {
 	BookName   string `validate:"required" json:"book_name"`
+	Liked      bool   `validate:"required" json:"liked"`
+	StartedAt  string `validate:"required" json:"started_at"`
+	FinishedAt string `json:"finished_at,omitempty"`
+}
+
+type UpdateBookDetailsRequestDB struct {
+	UserId     string `json:"user_id"`
+	BookName   string `json:"book_name"`
 	Liked      bool   `json:"liked"`
 	StartedAt  string `json:"started_at,omitempty"`
 	FinishedAt string `json:"finished_at,omitempty"`
+}
+
+type UpdateBookDetailsResponseDB struct {
+	Id string `json:"id"`
 }
