@@ -24,20 +24,23 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Container(
-                  child: const Icon(
-                    Icons.menu_book,
-                    color: Colors.blue,
+                Hero(
+                  tag: 'logo',
+                  child: Container(
+                    child: Image.asset('images/books.png'),
+                    height: 60.0,
                   ),
-                  height: 30.0,
-                  width: 60.0,
                 ),
-                const Text(
-                  'My Books App',
-                  style: TextStyle(
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(8.0, 0, 0, 0),
+                  child: Text(
+                    'My Books App',
+                    style: TextStyle(
                       fontSize: 30.0,
                       fontWeight: FontWeight.w900,
-                      color: Colors.blue),
+                      color: Colors.blue,
+                    ),
+                  ),
                 ),
               ],
             ),

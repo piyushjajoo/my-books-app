@@ -6,6 +6,13 @@ Here is the blog written for this repo <LINK TBD>
 - [Git](https://git-scm.com/downloads)
 - [Go](https://golang.org/doc/install)
 - [Flutter](https://flutter.dev/docs/get-started/install)
+- [KIND](https://kind.sigs.k8s.io/docs/user/quick-start/)
+- [Docker](https://www.docker.com/get-started)
+- [Editor Setup For Flutter](https://flutter.dev/docs/get-started/editor)
+- Editor Setup For Go ([GoLand](https://www.jetbrains.com/go/) and [Visual Studio Code](https://code.visualstudio.com/docs/languages/go))
+- [Firebase](https://console.firebase.google.com/) to integrate Login in Flutter app
+- [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) to interact with kubernetes KIND cluster
+- [Helm](https://helm.sh/docs/intro/install/) to install components in kubernetes KIND cluster
 
 ## Components
 - Astra DB
@@ -119,6 +126,10 @@ Response:
 
 ## Books Flutter App
 [books-app](books-server/README.md)
+
+### How to build Android App
+
+### How to build iOS App
 
 ## Deploy in Kubernetes Cluster
 [deploy](deploy/README.md)

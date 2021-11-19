@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: books-server
+  labels:
+    app: books-server
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: books-server
+  template:
+    metadata:
+      labels:
+        app: books-server
+    spec:
+      containers:
+      - image: {{ .Values.image }}
+        name: books-server
+        env:
+        - name: ASTRA_DB_REGION
+          value: {{ required "db region cannot be empty" .Values.astradb.region }}
+        - name: ASTRA_DB_KEYSPACE
+          value: {{ required "db keyspace cannot be empty" .Values.astradb.keyspace }}
+        - name: ASTRA_DB_APPLICATION_TOKEN
+          value: {{ required "db app token cannot be empty" .Values.astradb.appToken }}
+        - name: ASTRA_DB_ID
+          value: {{ required "db id cannot be empty" .Values.astradb.id }}
+
+
+

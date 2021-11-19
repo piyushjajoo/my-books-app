@@ -1,3 +1,5 @@
+import 'package:books_app/screens/my_books_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -10,6 +12,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+
+  final _auth = FirebaseAuth.instance;
+
+  String email = "", password = "";
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,12 +27,17 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            const SizedBox(
-              height: 48.0,
+            Hero(
+              tag: 'logo',
+              child: Container(
+                child: Image.asset('images/books.png'),
+                height: 200.0,
+              ),
             ),
             TextField(
+              keyboardType: TextInputType.emailAddress,
               onChanged: (value) {
-                //Do something with the user input.
+                email = value;
               },
               decoration: const InputDecoration(
                 hintText: 'Enter your email',
@@ -50,8 +62,9 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 8.0,
             ),
             TextField(
+              obscureText: true,
               onChanged: (value) {
-                //Do something with the user input.
+                password = value;
               },
               decoration: const InputDecoration(
                 hintText: 'Enter your password.',
@@ -82,8 +95,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.all(Radius.circular(30.0)),
                 elevation: 5.0,
                 child: MaterialButton(
-                  onPressed: () {
-                    //Implement login functionality.
+                  onPressed: () async {
+                    try {
+                      final user = await _auth.signInWithEmailAndPassword(
+                          email: email, password: password);
+                      Navigator.pushNamed(context, MyBooksScreen.id);
+                    }catch(e) {
+                      print(e);
+                    }
                   },
                   minWidth: 200.0,
                   height: 42.0,

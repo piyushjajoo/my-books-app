@@ -1,0 +1,9 @@
+replicas: 3
+image: "localhost:5000/books-server"
+
+# following properties must be overridden while running helm upgrade
+astradb:
+  region: ""
+  id: ""
+  appToken: ""
+  keyspace: ""

@@ -1,6 +1,9 @@
 import 'package:books_app/models/book.dart';
+import 'package:books_app/screens/welcome_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:books_app/models/book.dart' as book;
 
 class MyBooksScreen extends StatefulWidget {
   static const String id = 'my_books_screen';
@@ -12,20 +15,48 @@ class MyBooksScreen extends StatefulWidget {
 }
 
 class _MyBooksScreenState extends State<MyBooksScreen> {
-  late Future<List<Book>> futureBooks;
+  final _auth = FirebaseAuth.instance;
+
+  List<Book> booksList = <Book>[];
   final addBookController = TextEditingController();
   final _formKey = GlobalKey<FormFieldState>();
+  late final String userId;
 
   @override
   void initState() {
     super.initState();
-    futureBooks = fetchBooks();
+    _getCurrentUser().whenComplete(() {
+      _fetchBooks().whenComplete(() {
+        setState(() {});
+      });
+    });
+  }
+
+  Future<void> _getCurrentUser() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        // fetch the userId from astra db for the user
+        final userDetails = await fetchUser(user.email!);
+        userId = userDetails.id;
+      } else {
+        // Navigate to welcome screen
+        Navigator.pushNamed(context, WelcomeScreen.id);
+      }
+    } catch (e) {
+      print(e);
+    }
   }
 
   Future<void> _fetchBooks() async {
-    setState(() {
-      futureBooks = fetchBooks();
-    });
+    try {
+      final books = await fetchBooks(userId);
+      booksList = books;
+      setState(() {});
+    } catch (e) {
+      booksList = <Book>[];
+      print(e);
+    }
   }
 
   @override
@@ -34,24 +65,24 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
       appBar: AppBar(
         title: const Text("My Books"),
       ),
-      body: FutureBuilder<List<Book>>(
-        future: futureBooks,
-        builder: (context, books) {
-          if (books.hasData) {
-            return RefreshIndicator(
-              triggerMode: RefreshIndicatorTriggerMode.anywhere,
-              child: _buildBooksCards(books.data!),
+      body: booksList.isNotEmpty
+          ? RefreshIndicator(
+              child: ListView.builder(
+                scrollDirection: Axis.vertical,
+                itemCount: booksList.length,
+                itemBuilder: (context, index) {
+                  if (booksList.isEmpty) {
+                    return const Text('No books yet');
+                  } else {
+                    return _buildBookCard(booksList[index]);
+                  }
+                },
+              ),
               onRefresh: _fetchBooks,
-            );
-          } else if (books.hasError) {
-            return Text('${books.error}');
-          }
-          // By default, show a loading spinner
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        },
-      ),
+            )
+          : const Center(
+              child: CircularProgressIndicator(),
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showDialog(
@@ -66,6 +97,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                       child: Column(
                         children: <Widget>[
                           TextFormField(
+                            autofocus: true,
                             key: _formKey,
                             controller: addBookController,
                             validator: (value) {
@@ -92,7 +124,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                         child: const Text("Submit"),
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            addBook(addBookController.text);
+                            addBook(addBookController.text, userId);
                             addBookController.clear();
                             _fetchBooks();
                             Navigator.pop(context);
@@ -110,17 +142,22 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     );
   }
 
-  Widget _buildBooksCards(List<Book>? books) {
-    var _bookCards = <Widget>[];
-    for (var book in books!) {
-      _bookCards.add(_buildBookCard(book));
+  Future<void> _updateBook(Book book) async {
+    try {
+      await updateBook(book, userId);
+      _fetchBooks();
+    } catch (e) {
+      print(e);
     }
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: _bookCards,
-      ),
-    );
+  }
+
+  Future<void> _deleteBook(String bookId) async {
+    try {
+      await deleteBook(bookId, userId);
+      _fetchBooks();
+    } catch (e) {
+      print(e);
+    }
   }
 
   Container _buildBookCard(Book? book) {
@@ -191,10 +228,9 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                       color: Colors.red,
                     ),
                     onPressed: () {
-                      // Call PUT api and call rebuild
-                      setState(() {
-                        book.liked = !book.liked;
-                      });
+                      // Call PUT api and rebuild
+                      book.liked = !book.liked;
+                      _updateBook(book);
                     },
                   ),
                   IconButton(
@@ -213,7 +249,8 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                       color: Colors.redAccent,
                     ),
                     onPressed: () {
-                      // TODO call DELETE API and rebuild to remove the card
+                      // Call Delete api and rebuild
+                      _deleteBook(book.id);
                     },
                   ),
                 ],

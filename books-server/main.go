@@ -18,7 +18,6 @@ import (
 	"books-server/pkg/types"
 	"books-server/pkg/util"
 
-	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
@@ -130,7 +129,7 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	createUserRespDB := &types.CreateUserResponseDB{}
-	client := resty.New()
+	client := util.GetRestyInsecureClient()
 	resp, err := client.R().
 		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
 		SetBody(string(createUserReqDBBytes)).
@@ -164,7 +163,7 @@ func GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	getUserDBResponse := &types.GetUserResponseDB{}
-	client := resty.New()
+	client := util.GetRestyInsecureClient()
 	resp, err := client.R().
 		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
 		SetQueryParam("where", fmt.Sprintf("{\"email\":{\"$eq\": \"%s\"}}", email)).
@@ -185,6 +184,12 @@ func GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("success response from Astra DB", resp.String())
 
+	if getUserDBResponse.Count == 0 { // no data found
+		log.Println(fmt.Sprintf("user '%s' not found", email))
+		util.WriteErrorUsingErrorResponseStruct(w, &types.ErrorResponse{ErrorCode: http.StatusForbidden, ErrorMsg: "user not found"})
+		return
+	}
+
 	userDetailsFromDB := getUserDBResponse.Data[0].(map[string]interface{})
 	createdAt := userDetailsFromDB["created_at"].(map[string]interface{})
 	modifiedAt := userDetailsFromDB["modified_at"].(map[string]interface{})
@@ -204,7 +209,7 @@ func GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {
 // if not returns an error
 func checkUserExists(userId string) *types.ErrorResponse {
 	getUserResponseDB := &types.GetUserResponseDB{}
-	client := resty.New()
+	client := util.GetRestyInsecureClient()
 	resp, err := client.R().
 		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
 		SetQueryParam("fields", "id").
@@ -277,7 +282,7 @@ func AddBooksHandler(w http.ResponseWriter, r *http.Request) { // validate the r
 	}
 
 	createBookDetailsResponseDB := &types.CreateBookDetailsResponseDB{}
-	client := resty.New()
+	client := util.GetRestyInsecureClient()
 	resp, err := client.R().
 		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
 		SetBody(string(createBookDetailsRequestDBBytes)).
@@ -316,7 +321,7 @@ func GetBooksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	getBookDetailsResponseDB := &types.GetBookDetailsResponseDB{}
-	client := resty.New()
+	client := util.GetRestyInsecureClient()
 	resp, err := client.R().
 		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
 		SetQueryParam("where", fmt.Sprintf("{\"user_id\":{\"$eq\": \"%s\"}}", userId)).
@@ -379,7 +384,7 @@ func GetBookDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	getBookDetailsResponseDB := &types.GetBookDetailsResponseDB{}
-	client := resty.New()
+	client := util.GetRestyInsecureClient()
 	resp, err := client.R().
 		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
 		SetQueryParam("page-size", "1").
@@ -455,7 +460,7 @@ func UpdateBookDetailsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update data in DB
-	client := resty.New()
+	client := util.GetRestyInsecureClient()
 	resp, err := client.R().
 		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
 		SetBody(updateBookDetailsRequestDB).
@@ -495,7 +500,7 @@ func DeleteBookDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := resty.New()
+	client := util.GetRestyInsecureClient()
 	resp, err := client.R().
 		SetHeaders(map[string]string{"content-type": "application/json", "x-cassandra-token": conf.GetAstraDBApplicationToken()}).
 		SetQueryParam("page-size", "1").

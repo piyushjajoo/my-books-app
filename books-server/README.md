@@ -116,3 +116,42 @@ Response:
  "message": "Successfully deleted book details"
 }
 ```
+
+## Build and deploy in KIND Kubernetes cluster
+1. Make sure you have docker installed and running
+2. cd `books-server`
+3. Run [./build.sh](build.sh), you will see `books-server` image built
+4. Assuming you have created kind cluster as mentioned in [README.md](../README.md)
+5. Push the image to local kind registry
+```shell
+# tag the image
+docker tag books-server localhost:5000/books-server
+
+# push to registry in kind cluster
+docker push localhost:5000/books-server
+```
+5. Export following environment variables in a terminal
+```shell
+export ASTRA_DB_ID=<Database ID>
+export ASTRA_DB_REGION=<Datacenter Region you want to connect to>
+export ASTRA_DB_KEYSPACE=my_first_crud_ks
+export ASTRA_DB_APPLICATION_TOKEN=<API R/W User token; generate in Astra UI>
+```
+6. Run the following commands from the same terminal as #5 above to deploy the `books-server` in kind cluster
+```shell
+# create books-server namespace
+kubectl create ns books-server
+
+# deploy the helm chart
+helm upgrade --install -n books-server books-server charts/books-server \
+--set astradb.region="${ASTRA_DB_REGION}" \
+--set astradb.keyspace="${ASTRA_DB_KEYSPACE}" \
+--set astradb.id=${ASTRA_DB_ID} \
+--set astradb.appToken="${ASTRA_DB_APPLICATION_TOKEN}"
+```
+7. Wait for the `ingress` object to reflect `localhost` in ADDRESS column
+```shell
+$ kubectl get ingress -n books-server
+NAME           CLASS    HOSTS   ADDRESS     PORTS   AGE
+books-server   <none>   *       localhost   80      91s
+```

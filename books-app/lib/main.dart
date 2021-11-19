@@ -2,10 +2,15 @@ import 'package:books_app/screens/login_screen.dart';
 import 'package:books_app/screens/my_books_screen.dart';
 import 'package:books_app/screens/registration_screen.dart';
 import 'package:books_app/screens/welcome_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:global_configuration/global_configuration.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await GlobalConfiguration().loadFromAsset("app_config");
   runApp(const MyBooksApp());
 }
 

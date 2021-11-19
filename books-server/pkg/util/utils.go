@@ -2,8 +2,10 @@ package util
 
 import (
 	"books-server/pkg/types"
+	"crypto/tls"
 	"encoding/json"
 	"github.com/go-playground/validator"
+	"github.com/go-resty/resty/v2"
 	"github.com/kelseyhightower/envconfig"
 	"log"
 	"net/http"
@@ -54,8 +56,16 @@ func WriteErrorUsingErrorResponseStruct(w http.ResponseWriter, errorResponse *ty
 	json.NewEncoder(w).Encode(errorResponse)
 }
 
+// WriteSuccess writes a success response on the http writer
 func WriteSuccess(w http.ResponseWriter, statusCode int, responseStruct interface{}) {
 	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseStruct)
+}
+
+// GetRestyInsecureClient returns a resty http client with InsecureSkipVerify=true
+func GetRestyInsecureClient() *resty.Client {
+	client := resty.New()
+	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	return client
 }

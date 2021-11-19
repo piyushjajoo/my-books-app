@@ -36,7 +36,7 @@ type GetBookDetailsResponse struct {
 
 type UpdateBookDetailsRequest struct {
 	BookName   string `validate:"required" json:"book_name"`
-	Liked      bool   `validate:"required" json:"liked"`
+	Liked      bool   `json:"liked"`
 	StartedAt  string `validate:"required" json:"started_at"`
 	FinishedAt string `json:"finished_at,omitempty"`
 }
