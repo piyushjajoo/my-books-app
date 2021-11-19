@@ -151,7 +151,9 @@ helm upgrade --install -n books-server books-server charts/books-server \
 ```
 7. Wait for the `ingress` object to reflect `localhost` in ADDRESS column
 ```shell
-$ kubectl get ingress -n books-server
+kubectl get ingress -n books-server
+```
+```
 NAME           CLASS    HOSTS   ADDRESS     PORTS   AGE
 books-server   <none>   *       localhost   80      91s
 ```
