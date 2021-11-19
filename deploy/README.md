@@ -27,9 +27,14 @@ kubectl wait --namespace ingress-nginx \
 4. Follow the [Build and deploy in KIND Kubernetes cluster](../books-server/README.md) step to build the docker image, 
 push it to the local kind registry and deploy in KIND kubernetes cluster.
 
-5. See the next section to start the application.
+5. Add an `/etc/hosts` entry as below, by default the flutter application is configured to make requests on `mybooks.com`, but you can modify as you like.
+```
+127.0.0.1  mybooks.com
+```
 
-6. To cleanup simply run following command. Don't execute this unless you want to really cleanup.
+6. See the next section to start the application.
+
+7. To cleanup simply run following command. Don't execute this unless you want to really cleanup.
 ```shell
 kind delete cluster
 ```
@@ -38,6 +43,6 @@ kind delete cluster
 
 1. Assuming you have followed the steps above to deploy the `books-server` in a KIND cluster
 
-2. Edit `booksServerHost` value to `localhost` and run app in iOS simulator
+2. Edit `booksServerHost` value to `mybooks.com` OR the value you added in `/etc/hosts` above and run app in iOS simulator
 
 3. Now your app will run against this server deployed in kubernetes cluster.
