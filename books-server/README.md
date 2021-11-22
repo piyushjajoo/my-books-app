@@ -117,6 +117,75 @@ Response:
 }
 ```
 
+### How to test locally
+
+1. Copy paste the Astra DB Connection details you copied earlier in Astra DB section in step #4
+```shell
+export ASTRA_DB_ID=<Database ID from Astra UI>
+export ASTRA_DB_REGION=<Region where you created the DB>
+export ASTRA_DB_KEYSPACE=my_first_crud_ks
+export ASTRA_DB_APPLICATION_TOKEN=<Copy the token from the file you downloaded in Astra DB section in Step #3>
+```
+
+3. Start http server
+```shell
+cd books-server
+go run main.go
+```
+
+4. In another terminal, make API calls to the http server to check if it's running properly
+
+```
+1. POST /users
+
+$ curl http://localhost:8080/users -X POST -d '{"email":"pjajoo@example.com","first_name":"Piyush","last_name":"Jajoo"}'
+
+Response:
+{"id":"d91886bd-ee21-4a3e-819f-d1506414e4fe"}
+
+2. GET /users?email=<emailId>
+
+$ curl http://localhost:8080/users?email="pjajoo@example.com"
+
+Response:
+{"id":"d91886bd-ee21-4a3e-819f-d1506414e4fe","email":"pjajoo@example.com","first_name":"Piyush","last_name":"Jajoo","created_at":"2021-11-12T01:35:18.809Z","modified_at":"2021-11-12T01:35:18.809Z"}
+
+3. POST /users/{userId}/books
+
+$ curl -X POST http://localhost:8080/users/d91886bd-ee21-4a3e-819f-d1506414e4fe/books -d '{"book_name":"Zero to one", "liked":true, "started_at":"2021-11-12T01:35:18.809Z", "finished_at":"2021-11-12T01:35:18.809Z"}'
+
+Response:
+{"id":"946b11ab-c7d6-455d-97cb-2a2d9394ae19"}
+
+4. GET /users/{userId}/books
+
+$ curl -X GET http://localhost:8080/users/d91886bd-ee21-4a3e-819f-d1506414e4fe/books
+
+Response:
+[{"id":"946b11ab-c7d6-455d-97cb-2a2d9394ae19","book_name":"Zero to one","liked":true,"started_at":"2021-11-12T01:35:18.809Z","finished_at":"2021-11-12T01:35:18.809Z"}]
+
+5. GET /users/{userId}/books/{bookId}
+
+$ curl -X GET http://localhost:8080/users/d91886bd-ee21-4a3e-819f-d1506414e4fe/books/946b11ab-c7d6-455d-97cb-2a2d9394ae19
+
+Response:
+{"id":"946b11ab-c7d6-455d-97cb-2a2d9394ae19","book_name":"Zero to one","liked":true,"started_at":"2021-11-12T01:35:18.809Z","finished_at":"2021-11-12T01:35:18.809Z"}
+
+6. PUT /users/{userId}/books/{bookId}
+
+$ curl -X PUT http://localhost:8080/users/d91886bd-ee21-4a3e-819f-d1506414e4fe/books/946b11ab-c7d6-455d-97cb-2a2d9394ae19 -d '{"book_name":"Zero to two", "liked":true, "started_at":"2021-11-12T01:35:18.809Z", "finished_at":"2021-11-12T01:35:18.809Z"}'
+
+Response:
+{"message":"Successfully updated book details"}
+
+7. DELETE /users/{userId}/books/{bookId}
+
+$ curl -X DELETE http://localhost:8080/users/d91886bd-ee21-4a3e-819f-d1506414e4fe/books/946b11ab-c7d6-455d-97cb-2a2d9394ae19
+
+Response:
+{"message":"Successfully deleted book details"}
+```
+
 ## Build and deploy in KIND Kubernetes cluster
 1. Make sure you have docker installed and running
 2. cd `books-server`

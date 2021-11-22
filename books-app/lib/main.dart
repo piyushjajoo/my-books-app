@@ -1,6 +1,7 @@
 import 'package:books_app/screens/login_screen.dart';
 import 'package:books_app/screens/my_books_screen.dart';
 import 'package:books_app/screens/registration_screen.dart';
+import 'package:books_app/screens/profile_screen.dart';
 import 'package:books_app/screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
@@ -31,6 +32,7 @@ class MyBooksApp extends StatelessWidget {
         LoginScreen.id: (context) => const LoginScreen(),
         RegistrationScreen.id: (context) => const RegistrationScreen(),
         MyBooksScreen.id: (context) => const MyBooksScreen(),
+        ProfileScreen.id: (context) => const ProfileScreen.Profile(),
       },
     );
   }

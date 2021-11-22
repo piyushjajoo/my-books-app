@@ -1,24 +1,49 @@
 import 'package:books_app/screens/my_books_screen.dart';
+import 'package:books_app/screens/welcome_screen.dart';
 import 'package:books_app/utils/books_server.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:books_app/models/user.dart' as my_user;
 
-class RegistrationScreen extends StatefulWidget {
-  static const String id = 'registration_screen';
+class ProfileScreen extends StatefulWidget {
+  static const String id = 'profile_screen';
 
-  const RegistrationScreen({Key? key}) : super(key: key);
+  const ProfileScreen.Profile({Key? key}) : super(key: key);
 
   @override
-  _RegistrationScreenState createState() => _RegistrationScreenState();
+  _ProfileScreenState createState() => _ProfileScreenState();
 }
 
-class _RegistrationScreenState extends State<RegistrationScreen> {
+class _ProfileScreenState extends State<ProfileScreen> {
   final _auth = FirebaseAuth.instance;
 
-  late String email;
-  late String password;
-  late String firstName;
-  late String lastName;
+  my_user.User? userDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentUser();
+  }
+
+  void _getCurrentUser() {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        // fetch the userId from astra db for the user
+        final userDetailsFuture = fetchUser(user.email!);
+        userDetailsFuture
+            .then((value) => {userDetails = value})
+            .whenComplete(() {
+          setState(() {});
+        });
+      } else {
+        // Navigate to welcome screen
+        Navigator.pushNamed(context, WelcomeScreen.id);
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,22 +63,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ),
             ),
             TextField(
-              keyboardType: TextInputType.emailAddress,
+              enabled: false,
               onChanged: (value) {
-                email = value;
+                // email change not allowed
               },
-              decoration: const InputDecoration(
-                hintText: 'Enter your email',
+              decoration: InputDecoration(
+                hintText: userDetails!.email,
                 contentPadding:
-                    EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-                border: OutlineInputBorder(
+                    const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
-                enabledBorder: OutlineInputBorder(
+                enabledBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.blueAccent, width: 1.0),
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
@@ -64,20 +89,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ),
             TextField(
               onChanged: (value) {
-                firstName = value;
+                userDetails!.firstName = value;
               },
-              decoration: const InputDecoration(
-                hintText: 'Enter your first name',
+              decoration: InputDecoration(
+                hintText: userDetails!.firstName,
                 contentPadding:
-                    EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-                border: OutlineInputBorder(
+                    const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
-                enabledBorder: OutlineInputBorder(
+                enabledBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.blueAccent, width: 1.0),
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
@@ -88,45 +113,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ),
             TextField(
               onChanged: (value) {
-                lastName = value;
+                userDetails!.lastName = value;
               },
-              decoration: const InputDecoration(
-                hintText: 'Enter your last name',
+              decoration: InputDecoration(
+                hintText: userDetails!.lastName,
                 contentPadding:
-                    EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-                border: OutlineInputBorder(
+                    const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
-                enabledBorder: OutlineInputBorder(
+                enabledBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.blueAccent, width: 1.0),
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
-                  borderRadius: BorderRadius.all(Radius.circular(32.0)),
-                ),
-              ),
-            ),
-            const SizedBox(
-              height: 8.0,
-            ),
-            TextField(
-              obscureText: true,
-              onChanged: (value) {
-                password = value;
-              },
-              decoration: const InputDecoration(
-                hintText: 'Enter your password',
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(32.0)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blueAccent, width: 1.0),
-                  borderRadius: BorderRadius.all(Radius.circular(32.0)),
-                ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.blueAccent, width: 2.0),
                   borderRadius: BorderRadius.all(Radius.circular(32.0)),
                 ),
@@ -144,12 +144,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 child: MaterialButton(
                   onPressed: () async {
                     try {
-                      // register user with firebase
-                      await _auth.createUserWithEmailAndPassword(
-                          email: email, password: password);
 
-                      // call api-server to register the user in astra db
-                      await registerUser(email, firstName, lastName);
+                      // call api-server to update the user in astra db
+                      await updateUser(userDetails!);
 
                       // navigate to my books screen
                       Navigator.pushNamed(context, MyBooksScreen.id);
@@ -160,7 +157,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   minWidth: 200.0,
                   height: 42.0,
                   child: const Text(
-                    'Register',
+                    'Update',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),

@@ -1,9 +1,12 @@
 import 'package:books_app/models/book.dart';
+import 'package:books_app/models/user.dart' as my_user;
+import 'package:books_app/screens/profile_screen.dart';
 import 'package:books_app/screens/welcome_screen.dart';
+import 'package:books_app/utils/books_server.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:books_app/models/book.dart' as book;
+import 'package:intl/intl.dart';
 
 class MyBooksScreen extends StatefulWidget {
   static const String id = 'my_books_screen';
@@ -20,25 +23,31 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
   List<Book> booksList = <Book>[];
   final addBookController = TextEditingController();
   final _formKey = GlobalKey<FormFieldState>();
-  late final String userId;
+  my_user.User? userDetails;
+
+  final DateFormat niceFormatter = DateFormat("MM/dd/yyyy hh:mm:ss");
 
   @override
   void initState() {
     super.initState();
-    _getCurrentUser().whenComplete(() {
-      _fetchBooks().whenComplete(() {
-        setState(() {});
-      });
+    _getCurrentUser();
+    _fetchBooks();
+    setState(() {
+
     });
   }
 
-  Future<void> _getCurrentUser() async {
+  void _getCurrentUser() {
     try {
       final user = _auth.currentUser;
       if (user != null) {
         // fetch the userId from astra db for the user
-        final userDetails = await fetchUser(user.email!);
-        userId = userDetails.id;
+        final userDetailsFuture = fetchUser(user.email!);
+        userDetailsFuture
+            .then((value) => {userDetails = value})
+            .whenComplete(() {
+          setState(() {});
+        });
       } else {
         // Navigate to welcome screen
         Navigator.pushNamed(context, WelcomeScreen.id);
@@ -50,11 +59,12 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
 
   Future<void> _fetchBooks() async {
     try {
-      final books = await fetchBooks(userId);
-      booksList = books;
-      setState(() {});
+      await fetchBooks(userDetails!.id)
+          .then((value) => {booksList = value})
+          .whenComplete(() {
+        setState(() {});
+      });
     } catch (e) {
-      booksList = <Book>[];
       print(e);
     }
   }
@@ -65,17 +75,13 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
       appBar: AppBar(
         title: const Text("My Books"),
       ),
-      body: booksList.isNotEmpty
+      body: userDetails != null
           ? RefreshIndicator(
               child: ListView.builder(
                 scrollDirection: Axis.vertical,
                 itemCount: booksList.length,
                 itemBuilder: (context, index) {
-                  if (booksList.isEmpty) {
-                    return const Text('No books yet');
-                  } else {
-                    return _buildBookCard(booksList[index]);
-                  }
+                  return _buildBookCard(booksList[index]);
                 },
               ),
               onRefresh: _fetchBooks,
@@ -124,7 +130,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                         child: const Text("Submit"),
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            addBook(addBookController.text, userId);
+                            addBook(addBookController.text, userDetails!.id);
                             addBookController.clear();
                             _fetchBooks();
                             Navigator.pop(context);
@@ -139,12 +145,48 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
         tooltip: 'Add Book',
         child: const Icon(Icons.my_library_books),
       ),
+      drawer: userDetails != null
+          ? Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  DrawerHeader(
+                    decoration: const BoxDecoration(
+                      color: Colors.blue,
+                    ),
+                    child: Text(
+                      userDetails!.firstName + ' ' + userDetails!.lastName,
+                      style: const TextStyle(
+                        fontSize: 25.0,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text('Profile'),
+                    onTap: () {
+                      Navigator.pushNamed(context, ProfileScreen.id);
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Logout'),
+                    onTap: () {
+                      _auth.signOut().whenComplete(() {
+                        // navigate to welcome screen
+                        Navigator.pushNamed(context, WelcomeScreen.id);
+                      });
+                    },
+                  ),
+                ],
+              ),
+            )
+          : const Drawer(),
     );
   }
 
   Future<void> _updateBook(Book book) async {
     try {
-      await updateBook(book, userId);
+      await updateBook(book, userDetails!.id);
       _fetchBooks();
     } catch (e) {
       print(e);
@@ -153,7 +195,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
 
   Future<void> _deleteBook(String bookId) async {
     try {
-      await deleteBook(bookId, userId);
+      await deleteBook(bookId, userDetails!.id);
       _fetchBooks();
     } catch (e) {
       print(e);
@@ -163,7 +205,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
   Container _buildBookCard(Book? book) {
     return Container(
       padding: const EdgeInsets.all(8.0),
-      height: 200,
+      height: 220,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Card(
@@ -219,6 +261,31 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                   ),
                 ],
               ),
+              book.finishedAt.isNotEmpty
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: <Widget>[
+                        const Padding(
+                          padding: EdgeInsets.all(10.0),
+                          child: Text(
+                            "Finished At",
+                            style: TextStyle(
+                              fontSize: 15.0,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: Text(
+                            book.finishedAt,
+                            style: const TextStyle(
+                              fontSize: 15.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : const SizedBox(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
@@ -234,19 +301,26 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                     },
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Icons.done,
-                      color: Colors.green,
-                    ),
+                    icon: book.finishedAt.isEmpty
+                        ? const Icon(
+                            Icons.stop,
+                            color: Colors.red,
+                          )
+                        : const Icon(
+                            Icons.play_circle,
+                            color: Colors.green,
+                          ),
                     onPressed: () {
-                      // TODO call PUT API to mark the book finished and
-                      // Instead of Started At, change to Finished At
+                      book.finishedAt = niceFormatter.format(
+                        DateTime.parse(DateTime.now().toUtc().toString()),
+                      );
+                      _updateBook(book);
                     },
                   ),
                   IconButton(
                     icon: const Icon(
                       Icons.delete,
-                      color: Colors.redAccent,
+                      color: Colors.black,
                     ),
                     onPressed: () {
                       // Call Delete api and rebuild
